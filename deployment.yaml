@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openhands-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openhands-app
+  template:
+    metadata:
+      labels:
+        app: openhands-app
+    spec:
+      containers:
+        # 1) DinD sidecar (Docker daemon in privileged mode)
+        - name: dind-daemon
+          image: docker:20.10-dind
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            runAsGroup: 0
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""  # Disables TLS so main container can connect via /var/run/docker.sock
+          volumeMounts:
+            # Use PVC for persistent Docker data
+            - name: dind-data
+              mountPath: /var/lib/docker
+            # Share the socket with the main container
+            - name: dind-sock
+              mountPath: /var/run/
+
+        # 2) Main container (OpenHands app)
+        - name: openhands-app
+          image: docker.all-hands.dev/all-hands-ai/openhands:0.18
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: openhands-config
+          ports:
+            - containerPort: 3000
+              name: http
+          # Optional: health probes
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: openhands-state
+              mountPath: /.openhands-state
+            - name: dind-sock
+              mountPath: /var/run/
+
+      volumes:
+        # Socket volume shared between sidecar and main container
+        - name: dind-sock
+          emptyDir: {}
+        # PVC for Docker data (persistent)
+        - name: dind-data
+          persistentVolumeClaim:
+            claimName: dind-data-pvc
+        # PVC for .openhands-state
+        - name: openhands-state
+          persistentVolumeClaim:
+            claimName: openhands-state-pvc
+
