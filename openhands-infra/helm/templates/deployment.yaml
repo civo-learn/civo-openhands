@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Chart.Name }}-{{ .Release.Name }}"
+  labels:
+    app: "{{ .Chart.Name }}-{{ .Release.Name }}"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: "{{ .Chart.Name }}-{{ .Release.Name }}"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Chart.Name }}-{{ .Release.Name }}"
+    spec:
+      ################################################
+      # Map host.docker.internal -> 127.0.0.1
+      ################################################
+      hostAliases:
+        - ip: "127.0.0.1"
+          hostnames:
+            - "host.docker.internal"
+
+      containers:
+        #################################################################
+        # 1) DinD sidecar (Docker daemon)
+        #################################################################
+        - name: dind-daemon
+          image: "{{ .Values.images.dind.repository }}:{{ .Values.images.dind.tag }}"
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            runAsGroup: 0
+          env:
+            - name: DOCKER_HOST
+              value: "unix:///var/run/docker.sock"
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          resources:
+{{ toYaml .Values.resources.dind | indent 12 }}
+          volumeMounts:
+            - name: dind-data
+              mountPath: /var/lib/docker
+            - name: dind-sock
+              mountPath: /var/run/
+
+        #################################################################
+        # 2) Main container (OpenHands app)
+        #################################################################
+        - name: openhands-app
+          image: "{{ .Values.images.openhands.repository }}:{{ .Values.images.openhands.tag }}"
+          imagePullPolicy: "{{ .Values.images.openhands.pullPolicy }}"
+          envFrom:
+            - configMapRef:
+                name: "{{ .Chart.Name }}-{{ .Release.Name }}-config"
+          env:
+            - name: DOCKER_HOST
+              value: "unix:///var/run/docker.sock"
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+              name: http
+          # Health checks
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+{{ toYaml .Values.openhandsResources | indent 12 }}
+          volumeMounts:
+            - name: openhands-state
+              mountPath: /.openhands-state
+            - name: dind-sock
+              mountPath: /var/run/
+
+      ###################################################################
+      # Shared volumes for Docker socket & data + OpenHands state
+      ###################################################################
+      volumes:
+        - name: dind-sock
+          emptyDir: {}
+        - name: dind-data
+          persistentVolumeClaim:
+            claimName: "{{ .Chart.Name }}-{{ .Release.Name }}-dind-data-pvc"
+        - name: openhands-state
+          persistentVolumeClaim:
+            claimName: "{{ .Chart.Name }}-{{ .Release.Name }}-openhands-state-pvc"
