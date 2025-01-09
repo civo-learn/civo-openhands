@@ -5,21 +5,21 @@
 # The name of the cluster
 variable "cluster_name" {
   type        = string
-  default     = "civo-openhands"
+  default     = "civo-openhands-poc"
   description = "The name of the cluster to create"
 }
 
 # the GPU node instance to use for the cluster
 variable "cluster_node_size" {
   type = string
-  default     = "g4s.kube.medium" # L40s 46gb
+  default     = "g4c.kube.medium"
   description = "The size of the node required for the cluster"
 }
 
 # the number of nodes to provision in the cluster
 variable "cluster_node_count" {
   type        = number
-  default     = "3"
+  default     = "2"
   description = "The number of nodes to provision in the cluster"
 
 }

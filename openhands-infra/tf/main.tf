@@ -21,12 +21,12 @@ data "kubernetes_service" "openhands_service" {
   depends_on = [ helm_release.openhands ]
 }
 
-output "openhands_lb_ip" {
-  description = "External IP for the OpenHands LoadBalancer service"
-  value       = try(data.kubernetes_service.openhands_service.status.0.load_balancer.0.ingress.0.ip, "")
-}
+# output "openhands_lb_ip" {
+#   description = "External IP for the OpenHands LoadBalancer service"
+#   value       = try(data.kubernetes_service.openhands_service.status.0.load_balancer.0.ingress.0.ip, "")
+# }
 
-output "openhands_lb_hostname" {
-  description = "External Hostname for the OpenHands LoadBalancer service"
-  value       = try(data.kubernetes_service.openhands_service.status.0.load_balancer.0.ingress.0.hostname, "")
-}
+# output "openhands_lb_hostname" {
+#   description = "External Hostname for the OpenHands LoadBalancer service"
+#   value       = try(data.kubernetes_service.openhands_service.status.0.load_balancer.0.ingress.0.hostname, "")
+# }

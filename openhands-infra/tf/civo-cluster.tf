@@ -4,10 +4,7 @@ resource "civo_kubernetes_cluster" "cluster" {
     # Connect to the network & firewall
     firewall_id = civo_firewall.firewall.id
     network_id  = civo_network.network.id
-    
-    # Cluster type must be talos for GPU support
-    cluster_type = "talos"
-    
+        
     write_kubeconfig = true
     
     # attach one 
@@ -15,12 +12,40 @@ resource "civo_kubernetes_cluster" "cluster" {
         size = var.cluster_node_size
         node_count = var.cluster_node_count
     }
-
+    
     # specify a timeout for the cluster creation
     timeouts {
         create = "10m"
     }
 }
+
+# Creating priviledged namespace to allow Dind functionality
+resource "null_resource" "wait_for_api" {
+  provisioner "local-exec" {
+    command = <<EOT
+      for i in {1..30}; do
+        kubectl --kubeconfig="./kubeconfig" get nodes && break || sleep 10
+      done
+    EOT
+  }
+  depends_on = [civo_kubernetes_cluster.cluster]
+}
+
+resource "kubectl_manifest" "openhands_namespace" {
+  yaml_body = <<YAML
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openhands
+  annotations:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+YAML
+
+  depends_on = [null_resource.wait_for_api]
+}
+
 
 # Create a local file with the kubeconfig
 resource "local_file" "cluster-config" {
