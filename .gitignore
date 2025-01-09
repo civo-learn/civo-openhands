@@ -1,3 +1,5 @@
 # Ignore Terraform lock files
-.tflock.hcl
+.terraform.lock.hcl
 .terraform/
+terraform.tfstate*
+kubeconfig
