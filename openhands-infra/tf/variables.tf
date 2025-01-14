@@ -5,7 +5,7 @@
 # The name of the cluster
 variable "cluster_name" {
   type        = string
-  default     = "civo-openhands-poc"
+  default     = "civo-openhands"
   description = "The name of the cluster to create"
 }
 
@@ -29,7 +29,10 @@ variable "cluster_node_count" {
 # # # # # # # # # # # 
 
 # The Civo API token, this is set in terraform.tfvars
-variable "civo_token" {}
+variable "civo_token" {
+  type        = string
+  description = "The Civo API token"
+}
 
 # The Civo Region to deploy the cluster in
 variable "region" {
