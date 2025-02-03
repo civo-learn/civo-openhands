@@ -7,7 +7,7 @@ images:
     tag: 20.10-dind
   openhands:
     repository: docker.all-hands.dev/all-hands-ai/openhands
-    tag: "0.19"
+    tag: "0.22"
     pullPolicy: Always
 
 # Resources for the DinD sidecar
@@ -29,9 +29,9 @@ openhandsResources:
     cpu: "2"
     memory: "2Gi"
 
-# ConfigMap data
+# ConfigMap data.
 configMap:
-  SANDBOX_RUNTIME_CONTAINER_IMAGE: "docker.all-hands.dev/all-hands-ai/runtime:0.19-nikolaik"
+  SANDBOX_RUNTIME_CONTAINER_IMAGE: "docker.all-hands.dev/all-hands-ai/runtime:0.22-nikolaik"
   LOG_ALL_EVENTS: "true"
 
 # PVC storage sizes
